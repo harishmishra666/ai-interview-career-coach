@@ -1,4 +1,8 @@
 # 🎯 AI Interview & Career Coach
+![Python](https://img.shields.io/badge/Python-3.x-blue)
+![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
+![Google Gemini](https://img.shields.io/badge/Google-Gemini-orange)
+![Generative AI](https://img.shields.io/badge/AI-Generative%20AI-purple)
 
 An AI-powered interview preparation and career coaching application built with Python, Streamlit, and Google Gemini AI.
 
