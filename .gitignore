@@ -3,3 +3,5 @@ venv/
 __pycache__/
 *.pyc
 .streamlit/
+# Local backup file
+app_backup.py
