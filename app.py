@@ -61,8 +61,19 @@ defaults = {
     "gd_transcript": "",
     "gd_last_recognized": "",
     "gd_feedback": "",
+
     "gd_history": [],
     "gd_target_role": "",
+
+    # Real-Time Voice Interview Agent
+    "voice_interview_history": [],
+    "voice_interview_current_question": "",
+    "voice_interview_started": False,
+    "voice_interview_finished": False,
+    "voice_interview_feedback": "",
+    "voice_interview_last_recognized": "",
+    "voice_interview_target_role": "Python Developer",
+    "voice_interview_question_count": 0,
 
 }
 
@@ -397,7 +408,8 @@ else:
     st.info("Shuru karne ke liye upar apna resume PDF upload karein.")
 
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "\U0001F4C4 Resume Analyzer",
     "\U0001F3AF Job Matcher",
     "\U0001F3A4 Mock Interview",
@@ -405,7 +417,9 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Verbal GD Practice",
     "AI Job Finder & Apply Agent",
     "\U0001F5FA\uFE0F Career Roadmap",
+    "🎙️ Real-Time Voice Interview",
 ])
+
 with tab1:
     st.write("Analyze the resume uploaded once at the top of the page.")
 
@@ -1263,6 +1277,302 @@ with tab7:
                 "AI-generated guidance. Verify suggestions against your "
                 "actual skills and experience."
             )
+
+# ==================================================
+# TAB 8: REAL-TIME VOICE INTERVIEW AGENT
+# ==================================================
+
+import json
+import streamlit.components.v1 as components
+
+
+def voice_interview_ai(prompt):
+    return generate_ai_response(prompt)
+
+
+def speak_interview_text(text):
+    safe_text = json.dumps(text, ensure_ascii=False)
+    components.html(
+        f"""
+        <script>
+        const message = {safe_text};
+        if ("speechSynthesis" in window) {{
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.lang = "en-IN";
+            utterance.rate = 0.95;
+            window.speechSynthesis.speak(utterance);
+        }}
+        </script>
+        """,
+        height=0,
+    )
+
+
+with tab8:
+    st.header("🎙️ Real-Time Voice Interview Agent")
+    st.write(
+        "Practise a voice-based interview with an AI interviewer. "
+        "Answer questions using your microphone."
+    )
+
+    st.info(
+        "Chrome or Edge use karein aur microphone permission allow karein. "
+        "Speech recognition ke liye internet/browser support zaroori ho sakta hai."
+    )
+
+    resume = st.session_state.get("resume_text", "")
+
+    if resume:
+        st.success("Shared resume loaded successfully.")
+    else:
+        st.warning(
+            "Resume optional hai. Aap target role ke basis par bhi practice kar sakte hain."
+        )
+
+    role = st.text_input(
+        "Target Job Role",
+        value=st.session_state.voice_interview_target_role,
+        key="voice_interview_role_input",
+        placeholder="e.g. Python Developer, AI Engineer",
+    )
+
+    total_questions = st.slider(
+        "Number of questions",
+        min_value=3,
+        max_value=10,
+        value=5,
+        key="voice_interview_total_questions",
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        start = st.button(
+            "▶ Start / Restart Interview",
+            type="primary",
+            key="voice_interview_start",
+        )
+
+    with col2:
+        finish = st.button(
+            "Finish Interview",
+            key="voice_interview_finish",
+        )
+
+    if start:
+        if not role.strip():
+            st.warning("Please enter a target job role.")
+        elif api_ready():
+            try:
+                with st.spinner("Preparing your interview..."):
+                    first_question = voice_interview_ai(
+                        f"""
+                        You are a professional technical interviewer.
+                        Target role: {role}
+                        Candidate resume:
+                        {resume[:8000] if resume else "Not provided."}
+
+                        Ask exactly ONE concise opening interview question.
+                        Do not provide the answer. Return only the question.
+                        """
+                    )
+
+                st.session_state.voice_interview_target_role = role.strip()
+                st.session_state.voice_interview_history = []
+                st.session_state.voice_interview_current_question = (
+                    first_question.strip()
+                )
+                st.session_state.voice_interview_started = True
+                st.session_state.voice_interview_finished = False
+                st.session_state.voice_interview_feedback = ""
+                st.session_state.voice_interview_question_count = 1
+                st.session_state.voice_interview_answer = ""
+
+            except Exception as exc:
+                st.error(f"Interview start nahi hua: {exc}")
+
+    if finish and st.session_state.voice_interview_history:
+        try:
+            with st.spinner("Preparing your feedback report..."):
+                report = voice_interview_ai(
+                    f"""
+                    Evaluate this interview fairly for the role:
+                    {st.session_state.voice_interview_target_role}
+
+                    Resume:
+                    {resume[:8000] if resume else "Not provided."}
+
+                    Interview transcript:
+                    {json.dumps(st.session_state.voice_interview_history,
+                                ensure_ascii=False)}
+
+                    Give:
+                    1. Overall score out of 100
+                    2. Technical accuracy
+                    3. Communication and clarity
+                    4. Strengths
+                    5. Areas to improve
+                    6. A practical practice plan
+
+                    Be specific and constructive. Evaluate only the
+                    answers available; do not invent candidate details.
+                    """
+                )
+
+            st.session_state.voice_interview_feedback = report
+            st.session_state.voice_interview_finished = True
+            st.session_state.voice_interview_started = False
+            st.rerun()
+
+        except Exception as exc:
+            st.error(f"Feedback generate nahi hua: {exc}")
+
+    if st.session_state.voice_interview_started:
+
+        question = st.session_state.voice_interview_current_question
+        question_number = st.session_state.voice_interview_question_count
+
+        st.divider()
+        st.subheader(
+            f"Question {question_number} of {total_questions}"
+        )
+        st.markdown(f"**AI Interviewer:** {question}")
+        if st.button(
+            "🔊 Speak Question",
+            key="voice_interview_speak",
+        ):
+            speak_interview_text(question)
+
+        if "voice_interview_answer" not in st.session_state:
+            st.session_state.voice_interview_answer = ""
+
+
+        def save_recognized_answer():
+            recognized_text = st.session_state.get(
+                "voice_interview_microphone"
+            )
+            if recognized_text:
+                st.session_state.voice_interview_answer = (
+                    str(recognized_text).strip()
+                )
+
+        recognized = speech_to_text(
+            language="en",
+            just_once=True,
+            key="voice_interview_microphone",
+            callback=save_recognized_answer,
+        )
+
+        answer = st.text_area(
+            "Your answer (check and edit the recognized text)",
+            key="voice_interview_answer",
+            height=140,
+            placeholder="Record your answer or type it here.",
+        )
+
+        st.caption(
+            "Microphone recognition can make mistakes. Review your answer "
+            "before submitting it."
+        )
+
+        if st.button(
+            "Submit Answer & Continue",
+            type="primary",
+            key="voice_interview_submit",
+        ):
+            if not answer.strip():
+                st.warning("Please record or type your answer.")
+            elif api_ready():
+                try:
+                    history = (
+                        st.session_state.voice_interview_history + [{
+                            "question": question,
+                            "answer": answer.strip(),
+                        }]
+                    )
+
+                    if question_number >= total_questions:
+                        with st.spinner("Evaluating your interview..."):
+                            report = voice_interview_ai(
+                                f"""
+                                Evaluate this interview for:
+                                {st.session_state.voice_interview_target_role}
+
+                                Candidate resume:
+                                {resume[:8000] if resume else "Not provided."}
+
+                                Transcript:
+                                {json.dumps(history, ensure_ascii=False)}
+
+                                Provide an overall score out of 100,
+                                technical accuracy, communication quality,
+                                strengths, improvement areas and a practice plan.
+                                Be constructive and use only available evidence.
+                                """
+                            )
+
+                        st.session_state.voice_interview_history = history
+                        st.session_state.voice_interview_feedback = report
+                        st.session_state.voice_interview_finished = True
+                        st.session_state.voice_interview_started = False
+                        st.session_state.voice_interview_answer = ""
+
+                    else:
+                        with st.spinner("Preparing your next question..."):
+                            next_question = voice_interview_ai(
+                                f"""
+                                Interview role:
+                                {st.session_state.voice_interview_target_role}
+
+                                Candidate resume:
+                                {resume[:8000] if resume else "Not provided."}
+
+                                Previous questions and answers:
+                                {json.dumps(history, ensure_ascii=False)}
+
+                                Ask exactly ONE next interview question.
+                                Adapt it to the candidate's previous answer.
+                                Do not provide the answer. Return only the question.
+                                """
+                            )
+
+                        st.session_state.voice_interview_history = history
+                        st.session_state.voice_interview_current_question = (
+                            next_question.strip()
+                        )
+                        st.session_state.voice_interview_question_count += 1
+                        st.session_state.voice_interview_answer = ""
+
+                    st.rerun()
+
+                except Exception as exc:
+                    st.error(f"Answer process nahi hua: {exc}")
+
+    if st.session_state.voice_interview_history:
+        st.divider()
+        st.subheader("📝 Interview Transcript")
+
+        for index, item in enumerate(
+            st.session_state.voice_interview_history,
+            start=1,
+        ):
+            with st.expander(f"Question {index}"):
+                st.markdown(f"**Interviewer:** {item['question']}")
+                st.markdown(f"**Your answer:** {item['answer']}")
+
+    if st.session_state.voice_interview_feedback:
+        st.divider()
+        st.subheader("📊 Interview Performance Report")
+        st.markdown(st.session_state.voice_interview_feedback)
+
+        st.download_button(
+            "Download Interview Feedback",
+            data=st.session_state.voice_interview_feedback,
+            file_name="voice_interview_feedback.txt",
+            mime="text/plain",
+            key="voice_interview_download",
+        )
 # FOOTER
 # ==================================================
 
