@@ -456,7 +456,7 @@ with tab1:
 # ==================================================
 
 with tab2:
-    st.header("ResumeÃ¢â‚¬â€œJob Description Matcher")
+    st.header("Resume - Job Description Matcher")
 
     st.write(
         "Compare your resume with a target job description "
@@ -1448,21 +1448,20 @@ with tab8:
             st.session_state.voice_interview_answer = ""
 
 
-        def save_recognized_answer():
-            recognized_text = st.session_state.get(
-                "voice_interview_microphone"
-            )
-            if recognized_text:
-                st.session_state.voice_interview_answer = (
-                    str(recognized_text).strip()
-                )
+
 
         recognized = speech_to_text(
             language="en",
+            start_prompt="Start speaking",
+            stop_prompt="Stop recording",
             just_once=True,
             key="voice_interview_microphone",
-            callback=save_recognized_answer,
         )
+
+        if recognized and recognized.strip():
+            recognized_text = recognized.strip()
+            st.session_state["voice_interview_answer"] = recognized_text
+            st.session_state["voice_interview_last_recognized"] = recognized_text
 
         answer = st.text_area(
             "Your answer (check and edit the recognized text)",
@@ -1470,6 +1469,8 @@ with tab8:
             height=140,
             placeholder="Record your answer or type it here.",
         )
+
+
 
         st.caption(
             "Microphone recognition can make mistakes. Review your answer "
