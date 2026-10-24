@@ -24,6 +24,7 @@ from modules.jd_analyzer import analyze_resume_and_jd
 from modules.interview_agent import generate_interview_questions
 from modules.evaluator import evaluate_answer
 from modules.job_finder import search_adzuna_jobs
+from modules.job_matcher import calculate_job_match
 from modules.career_roadmap import generate_career_roadmap
 from streamlit_mic_recorder import speech_to_text
 
@@ -1043,6 +1044,38 @@ with tab6:
         for index, job in enumerate(jobs):
             with st.container(border=True):
                 st.subheader(job.get("title", "Untitled role"))
+                resume_text = st.session_state.get("resume_text", "")
+                job_description = (
+                    job.get("title", "")
+                    + " "
+                    + job.get("description", "")
+                )
+
+                match_result = calculate_job_match(
+                    resume_text,
+                    job_description,
+                )
+
+                score = match_result["match_score"]
+
+                if score is not None:
+                    st.progress(score / 100)
+                    st.write(f"**Resume Match Score:** {score}%")
+                    st.caption(match_result["message"])
+
+                    if match_result["matched_skills"]:
+                        st.write(
+                            "**Matched skills:** "
+                            + ", ".join(match_result["matched_skills"])
+                        )
+
+                    if match_result["missing_skills"]:
+                        st.write(
+                            "**Skills to develop:** "
+                            + ", ".join(match_result["missing_skills"])
+                        )
+                else:
+                    st.info(match_result["message"])
                 st.write(
                     f"**Company:** {job.get('company', 'Not specified')}"
                 )
