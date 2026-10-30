@@ -27,6 +27,7 @@ from modules.job_finder import search_adzuna_jobs
 from modules.job_matcher import calculate_job_match
 from modules.career_roadmap import generate_career_roadmap
 from streamlit_mic_recorder import speech_to_text
+from modules.learning_academy import render_learning_academy
 
 
 # ==================================================
@@ -410,7 +411,7 @@ else:
 
 
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "\U0001F4C4 Resume Analyzer",
     "\U0001F3AF Job Matcher",
     "\U0001F3A4 Mock Interview",
@@ -419,6 +420,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "AI Job Finder & Apply Agent",
     "\U0001F5FA\uFE0F Career Roadmap",
     "🎙️ Real-Time Voice Interview",
+    "🎓 AI Learning Academy",
 ])
 
 with tab1:
@@ -1607,6 +1609,9 @@ with tab8:
             mime="text/plain",
             key="voice_interview_download",
         )
+
+with tab9:
+    render_learning_academy()
 # FOOTER
 # ==================================================
 
@@ -1617,3 +1622,7 @@ st.caption(
     "using it in job applications. Never include false qualifications "
     "or achievements."
 )
+
+
+
+

@@ -5,3 +5,13 @@ __pycache__/
 .streamlit/
 # Local backup file
 app_backup.py
+
+# Academy private data
+academy_data/
+academy_uploads/
+
+# Local backup files
+*backup*.py
+*_before_*.py
+app.py.*
+mic_test.py
