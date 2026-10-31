@@ -12,6 +12,8 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
@@ -204,6 +206,29 @@ Use clear headings and concise bullet points.
 def create_resume_pdf(resume_text):
     buffer = BytesIO()
 
+    # Register Unicode-compatible fonts
+    regular_font = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "DejaVuSans.ttf")
+    bold_font = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "DejaVuSans-Bold.ttf")
+
+    if "DejaVu" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(
+            TTFont("DejaVu", regular_font)
+        )
+
+    if "DejaVu-Bold" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(
+            TTFont("DejaVu-Bold", bold_font)
+        )
+
+    # Repair common UTF-8 mojibake
+    mojibake_markers = ("â€™", "â€“", "â€”", "â€¢", "Ã", "Â")
+
+    if any(marker in resume_text for marker in mojibake_markers):
+        try:
+            resume_text = resume_text.encode("cp1252").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+
     document = SimpleDocTemplate(
         buffer,
         pagesize=A4,
@@ -220,7 +245,7 @@ def create_resume_pdf(resume_text):
         ParagraphStyle(
             name="ResumeName",
             parent=styles["Title"],
-            fontName="Helvetica-Bold",
+            fontName="DejaVu-Bold",
             fontSize=18,
             leading=22,
             textColor=colors.HexColor("#163A5F"),
@@ -233,7 +258,7 @@ def create_resume_pdf(resume_text):
         ParagraphStyle(
             name="ResumeSection",
             parent=styles["Heading2"],
-            fontName="Helvetica-Bold",
+            fontName="DejaVu-Bold",
             fontSize=11,
             leading=14,
             textColor=colors.HexColor("#163A5F"),
@@ -246,11 +271,11 @@ def create_resume_pdf(resume_text):
         ParagraphStyle(
             name="ResumeText",
             parent=styles["BodyText"],
-            fontName="Helvetica",
+            fontName="DejaVu",
             fontSize=9,
             leading=12,
             spaceAfter=4,
-        )
+    )
     )
 
     story = []
@@ -286,9 +311,10 @@ def create_resume_pdf(resume_text):
             continue
 
         if line.startswith(("- ", "* ")):
-            line = "â€¢ " + line[2:]
+            line = "• " + line[2:]
 
         safe_line = html.escape(line)
+
         safe_line = re.sub(
             r"\*\*(.+?)\*\*",
             r"<b>\1</b>",
@@ -301,6 +327,7 @@ def create_resume_pdf(resume_text):
 
     document.build(story)
     buffer.seek(0)
+
     return buffer.getvalue()
 
 
@@ -732,7 +759,7 @@ with tab4:
 
         try:
             pdf_data = create_resume_pdf(
-                st.session_state.generated_resume
+    st.session_state.generated_resume
             )
 
             st.download_button(
